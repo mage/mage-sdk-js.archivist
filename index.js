@@ -45,6 +45,18 @@ Buffer.prototype.toString = function () {
 };
 
 
+function parseJson(data, encoding) {
+	if (encoding === 'utf8') {
+		return JSON.parse(data);
+	}
+
+	if (encoding === 'base64') {
+		return JSON.parse(window.atob(data));
+	}
+
+	return data;
+}
+
 function forEach(target, fn) {
 	if (Array.isArray(target)) {
 		for (var i = 0; i < target.length; i++) {
@@ -64,6 +76,47 @@ var regMediaTypes = {
 		writer: function (value, mediaType, data) {
 			value.mediaType = mediaType;
 			value.data = data;
+		}
+	},
+	'application/x-tome': {
+		writer: function (value, mediaType, tome) {
+			function onchange() {
+				operations.queue.applyDiff(value.topic, value.index, tome);
+			}
+
+			if (value.data !== tome) {
+				// a new tome
+
+				tome.on('readable', onchange);
+			}
+
+			value.mediaType = mediaType;
+			value.data = tome;
+		},
+		detector: function (data) {
+			return Tome.isTome(data) ? 1 : 0;
+		},
+		encoders: {
+			'utf8-live': function (data) {
+				return Tome.conjure(parseJson(data, 'utf8'));
+			},
+			'live-utf8': function (tome) {
+				return JSON.stringify(tome, null, '\t');
+			}
+		},
+		diff: {
+			get: function (tome) {
+				var diff, diffs = [];
+
+				while ((diff = tome.read())) {
+					diffs.push(diff);
+				}
+
+				return diffs;
+			},
+			set: function (tome, diffs) {
+				tome.merge(diffs);
+			}
 		}
 	},
 	'application/json': {
@@ -251,6 +304,12 @@ VaultValue.prototype.del = function () {
 		return;
 	}
 
+	if (Tome.isTome(this.data)) {
+		// this also resets all event listeners
+
+		Tome.destroy(this.data);
+	}
+
 	this.mediaType = undefined;
 	this.data = undefined;
 	this.encoding = undefined;
@@ -347,6 +406,10 @@ operations.exec.set = function (topic, index, data, mediaType, encoding, expirat
 		value = new VaultValue(topic, index);
 
 		loaded[trueName] = value;
+	} else if (Tome.isTome(value.data)) {
+		// We are overwriting this Tome, destroy it first.
+
+		Tome.destroy(value.data);
 	}
 
 	value.setData(mediaType, data, encoding);
@@ -853,4 +916,3 @@ exports.list = function (topic, partialIndex, options, cb) {
 
 	exports.rawList(topic, partialIndex, options, cb);
 };
-
