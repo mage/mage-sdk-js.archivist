@@ -1,4 +1,4 @@
-var EventEmitter = require('events');
+var EventEmitter = require('events.js');
 var mage = require('mage-sdk-js');
 var inherits = require('inherits');
 var rumplestiltskin = require('rumplestiltskin').trueName;
