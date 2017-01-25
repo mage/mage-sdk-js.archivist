@@ -17,9 +17,9 @@
   },
   "homepage": "https://github.com/mage/mage-sdk-js.archivist#readme",
   "dependencies": {
-    "events.js": "^0.1.4",
+    "events": "^1.1.1",
     "inherits": "^2.0.3",
     "rumplestiltskin": "^0.0.6",
-    "tomes": "ronkorving/node-tomes#events"
+    "tomes": "^0.3.0"
   }
 }
