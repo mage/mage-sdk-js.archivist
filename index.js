@@ -2,7 +2,6 @@ var EventEmitter = require('events.js');
 var mage = require('mage-sdk-js');
 var inherits = require('inherits');
 var rumplestiltskin = require('rumplestiltskin').trueName;
-var Tome = require('tomes').Tome;
 
 function createTrueName(index, topic) {
 	return rumplestiltskin(index || {}, topic);
@@ -30,7 +29,7 @@ var operations = {
 function getFromCache(trueName, maxAge) {
 	var value = loaded[trueName];
 
-	return value && (typeof maxAge !== 'number' || value._writtenAt > Date.now() - maxAge * 1000) ?
+	return value && (typeof maxAge !== 'number' || value._writtenAt > Date.now() - (maxAge * 1000)) ?
 		value :
 		undefined;
 }
@@ -47,7 +46,7 @@ Buffer.prototype.toString = function () {
 
 function forEach(target, fn) {
 	if (Array.isArray(target)) {
-		for (var i = 0; i < target.length; i++) {
+		for (var i = 0; i < target.length; i += 1) {
 			fn(i, target[i]);
 		}
 	} else {
@@ -114,7 +113,7 @@ function guessMediaType(data) {
 	var lastCertainty = 0;
 	var result;
 
-	for (var i = 0, len = detectorList.length; i < len; i++) {
+	for (var i = 0, len = detectorList.length; i < len; i += 1) {
 		var mediaType = detectorList[i];
 		var detector = regMediaTypes[mediaType].detector;
 
@@ -147,7 +146,7 @@ function encode(data, mediaType, fromEncoding, toEncodings) {
 	var glob = regMediaTypes['*'];
 	var encoders = (spec && spec.encoders) || glob.encoders || {};
 
-	for (var i = 0; i < toEncodings.length; i++) {
+	for (var i = 0; i < toEncodings.length; i += 1) {
 		var toEncoding = toEncodings[i];
 
 		var encoder = encoders[fromEncoding + '-' + toEncoding];
@@ -187,7 +186,7 @@ function createGetCallback(callback, options) {
 }
 
 function runGetCallbacks(trueNames, error) {
-	for (var i = 0; i < trueNames.length; i++) {
+	for (var i = 0; i < trueNames.length; i += 1) {
 		var trueName = trueNames[i];
 
 		var callbacks = loading[trueName];
@@ -197,7 +196,7 @@ function runGetCallbacks(trueNames, error) {
 			continue;
 		}
 
-		for (var j = 0; j < callbacks.length; j++) {
+		for (var j = 0; j < callbacks.length; j += 1) {
 			var callback = callbacks[j];
 
 			if (error) {
@@ -234,7 +233,7 @@ VaultValue.prototype.touch = function (expirationTimeOnServer) {
 		mage.time.serverTimeToClientTime(expirationTimeOnServer) :
 		expirationTimeOnServer;
 
-	var ttl = this.expirationTime * 1000 - Date.now();
+	var ttl = (this.expirationTime * 1000) - Date.now();
 
 	var that = this;
 
@@ -599,19 +598,17 @@ exports.clearCache = function () {
  */
 
 exports.distribute = function (cb) {
-	cb = cb || function () {};
-
 	var trueNames = Object.keys(changes);
 
 	if (trueNames.length === 0) {
-		return cb(null, []);
+		return cb && cb(null, []);
 	}
 
 	distributing = true;
 
 	var distribution = [];
 
-	for (var i = 0; i < trueNames.length; i++) {
+	for (var i = 0; i < trueNames.length; i += 1) {
 		distribution.push(changes[trueNames[i]]);
 	}
 
@@ -620,7 +617,9 @@ exports.distribute = function (cb) {
 	exports.rawDistribute(distribution, function (error, issues) {
 		distributing = false;
 
-		cb(error, issues);
+		if (cb) {
+			cb(error, issues);
+		}
 	});
 };
 
